@@ -39,7 +39,7 @@ document_qa_poc/
 
 ## ⚙️ Tech Stack
 
-- Python 3.x
+- Python 3.14
 - Google Gemini API
 - ChromaDB
 - PyMuPDF (fitz)
