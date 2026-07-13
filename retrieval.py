@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY)
-EMBEDDING_MODEL = "text-embedding-004"
+EMBEDDING_MODEL = "gemini-embedding-001"
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
 collection = chroma_client.get_or_create_collection(
