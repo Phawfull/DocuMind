@@ -17,7 +17,7 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}     #tells chromadb to use cosine similarity for vector search
 )
 
-def extract_pdf(file_path)
+def extract_pdf(file_path):
     pages=[]
     pdf_document = fitz.open(file_path)
     for page_number in range(len(pdf_document)):
@@ -84,13 +84,16 @@ def store_embeddings(embedded_chunks):
         ids.append("chunk_" + str(chunk["chunk_index"]))   #gives sm like chunk_0, chunk_1, chunk_2
         embeddings.append(chunk["embedding"])
         documents.append(chunk["text"])
-        metadatas.append(chunk["metadata"])
-        collection..add(
-            ids=ids,
-            embeddings=embeddings,
-            documents=documents,
-            metadatas=metadatas
-        )
+        metadatas.append({
+            "page_number": chunk["page_number"],
+            "chunk_index": chunk["chunk_index"]
+        })
+    collection.add(
+        ids=ids,
+        embeddings=embeddings,
+        documents=documents,
+        metadatas=metadatas
+    )
 
 
 def process_pdf(file_path):
