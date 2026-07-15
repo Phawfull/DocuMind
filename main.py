@@ -1,7 +1,7 @@
 from ingestion import process_pdf
 from retrieval import embed_query, search_document
 from generation import generate_answer
-
+import os
 
 def main():
     """
