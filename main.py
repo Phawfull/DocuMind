@@ -4,8 +4,30 @@ from generation import generate_answer
 
 
 def main():
-    pdf_path = input("Enter PDF path: ").strip().strip('"')
-    process_pdf(pdf_path)
+    """
+        Runs the Document Question Answering application.
+        Allows the user to:
+        1. Upload a PDF document.
+        2. Process and store embeddings.
+        3. Ask questions about the document.
+        4. Receive AI-generated answers based on retrieved context.
+        Returns:
+            None
+        """
+    while True:
+        pdf_path = input("Enter PDF Path: ")
+        if not os.path.exists(pdf_path):
+            print("Error: File does not exist. Please try again.\n")
+            continue
+        if not pdf_path.lower().endswith(".pdf"):
+            print("Error: Please provide a PDF file.\n")
+            continue
+        try:
+            process_pdf(pdf_path)
+            break
+        except Exception as e:
+            print(f"Error processing PDF: {e}")
+            print("Please try another file.\n")
     print("\nDocument is ready for questions!\n")
 
     while True:

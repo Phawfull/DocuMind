@@ -16,6 +16,14 @@ collection = chroma_client.get_or_create_collection(
 )
 
 def extract_pdf(file_path):
+    """
+       Extracts text from each page of a PDF document.
+       Args:
+           file_path (str): Path to the PDF file.
+       Returns:
+           list: A list of tuples containing the extracted page text
+           and corresponding page number.
+       """
     pages=[]
     pdf_document = fitz.open(file_path)
     for page_number in range(len(pdf_document)):
@@ -28,6 +36,15 @@ def extract_pdf(file_path):
     return pages
 
 def chunk_text(pages, chunk_size=500, overlap=50):
+    """
+        Splits extracted PDF text into overlapping chunks for embedding.
+        Args:
+            pages (list): List of tuples containing page text and page number.
+            chunk_size (int): Maximum number of words per chunk.
+            overlap (int): Number of overlapping words between consecutive chunks.
+        Returns:
+            list: A list of dictionaries containing chunk text and metadata.
+        """
     chunks = []
     for page_text, page_number in pages:
         words = page_text.split()
@@ -46,6 +63,15 @@ def chunk_text(pages, chunk_size=500, overlap=50):
 
 
 def create_embeddings(chunks):
+    """
+        Splits extracted PDF text into overlapping chunks for embedding.
+        Args:
+            pages (list): List of tuples containing page text and page number.
+            chunk_size (int): Maximum number of words per chunk.
+            overlap (int): Number of overlapping words between consecutive chunks.
+        Returns:
+            list: A list of dictionaries containing chunk text and metadata.
+        """
     embedded_chunks = []
     for chunk in chunks:
         response = client.models.embed_content(
@@ -62,6 +88,14 @@ def create_embeddings(chunks):
 
 
 def store_embeddings(embedded_chunks):
+    """
+        Stores text embeddings and metadata in the ChromaDB vector database.
+        Args:
+            embedded_chunks (list): List containing embeddings, text,
+            and metadata for each chunk.
+        Returns:
+            None
+        """
     ids = []
     embeddings = []
     documents = []
@@ -84,6 +118,18 @@ def store_embeddings(embedded_chunks):
 
 
 def process_pdf(file_path):
+    """
+        Executes the complete document ingestion pipeline.
+        The pipeline performs:
+        1. PDF text extraction
+        2. Text chunking
+        3. Embedding generation
+        4. Storage in ChromaDB
+        Args:
+            file_path (str): Path to the PDF document.
+        Returns:
+            None
+        """
     print("Processing PDF...")
     pages = extract_pdf(file_path)
     print("Chunking text...")

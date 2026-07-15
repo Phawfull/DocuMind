@@ -8,6 +8,14 @@ client = genai.Client(api_key=API_KEY)
 
 
 def generate_answer(question, context):
+    """
+        Generates an answer using Gemini based only on the retrieved context.
+        Args:
+            question (str): User's question.
+            context (list): List of retrieved document chunks.
+        Returns:
+            str: Generated answer from the language model.
+        """
     context_text = "\n\n".join(context)
     prompt = f"""
 You are a helpful AI assistant.
