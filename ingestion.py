@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 client = genai.Client(api_key=API_KEY)
 EMBEDDING_MODEL = "gemini-embedding-001"
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
@@ -15,7 +20,7 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
-def extract_pdf(file_path):
+def extract_pdf(file_path: str) -> list[tuple[str, int]]:
     """
        Extracts text from each page of a PDF document.
        Args:
@@ -35,7 +40,7 @@ def extract_pdf(file_path):
     pdf_document.close()
     return pages
 
-def chunk_text(pages, chunk_size=500, overlap=50):
+def chunk_text(pages, CHUNK_SIZE = 500, overlap=50):
     """
         Splits extracted PDF text into overlapping chunks for embedding.
         Args:
@@ -117,7 +122,7 @@ def store_embeddings(embedded_chunks):
     )
 
 
-def process_pdf(file_path):
+def process_pdf(file_path: str) -> None:
     """
         Executes the complete document ingestion pipeline.
         The pipeline performs:
@@ -130,7 +135,7 @@ def process_pdf(file_path):
         Returns:
             None
         """
-    print("Processing PDF...")
+    logging.info("Processing PDF...")
     pages = extract_pdf(file_path)
     print("Chunking text...")
     chunks = chunk_text(pages)
@@ -138,4 +143,4 @@ def process_pdf(file_path):
     embedded_chunks = create_embeddings(chunks)
     print("Storing embeddings in ChromaDB...")
     store_embeddings(embedded_chunks)
-    print("Document processed successfully!")
+    logging.info("PDF processed successfully.")

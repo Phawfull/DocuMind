@@ -2,6 +2,7 @@ from ingestion import process_pdf
 from retrieval import embed_query, search_document
 from generation import generate_answer
 import os
+import logging
 
 def main():
     """
@@ -26,7 +27,7 @@ def main():
             process_pdf(pdf_path)
             break
         except Exception as e:
-            print(f"Error processing PDF: {e}")
+            logging.error(f"Error processing PDF: {e}")
             print("Please try another file.\n")
     print("\nDocument is ready for questions!\n")
 
