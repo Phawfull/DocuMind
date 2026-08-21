@@ -9,26 +9,43 @@ client = genai.Client(api_key=API_KEY)
 
 def generate_answer(question, context):
     """
-        Generates an answer using Gemini based only on the retrieved context.
-        Args:
-            question (str): User's question.
-            context (list): List of retrieved document chunks.
-        Returns:
-            str: Generated answer from the language model.
-        """
-    context_text = "\n\n".join(context)
+    Generates an answer using Gemini based only on the retrieved context.
+    Includes source information for each retrieved chunk.
+    """
+
+    context_parts = []
+
+    for chunk in context:
+        context_parts.append(
+            f"[Source: {chunk['document_name']} — "
+            f"Page {chunk['page_number']}, "
+            f"Chunk {chunk['chunk_index']}]\n"
+            f"{chunk['text']}"
+        )
+
+    context_text = "\n\n".join(context_parts)
+
     prompt = f"""
 You are a helpful AI assistant.
+
 Answer ONLY using the information provided in the context below.
+
+For every important claim in your answer, mention the page number
+where the information was found.
+
 If the answer is not present in the context, reply exactly:
 "I could not find the answer in the provided document."
+
 Context:
 {context_text}
+
 Question:
 {question}
 """
+
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt
     )
+
     return response.text

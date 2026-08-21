@@ -29,15 +29,32 @@ def embed_query(question: str) -> list[float]:
 
 def search_document(query_embedding, top_k=3):
     """
-        Retrieves the most relevant document chunks from ChromaDB.
-        Args:
-            query_embedding (list): Embedding vector of the user's query.
-            top_k (int): Number of relevant chunks to retrieve.
-        Returns:
-            dict: Search results returned by ChromaDB.
-        """
+    Retrieves the most relevant document chunks from ChromaDB.
+    Returns both the text and source metadata.
+    """
+
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k
     )
-    return results["documents"][0]
+
+    retrieved_chunks = []
+
+    documents = results["documents"][0]
+    metadatas = results["metadatas"][0]
+    distances = results["distances"][0]
+
+    for document, metadata, distance in zip(
+        documents,
+        metadatas,
+        distances
+    ):
+        retrieved_chunks.append({
+            "text": document,
+            "document_name": metadata["document_name"],
+            "page_number": metadata["page_number"],
+            "chunk_index": metadata["chunk_index"],
+            "distance": distance
+        })
+
+    return retrieved_chunks

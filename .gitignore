@@ -1,23 +1,68 @@
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
 
+# Python virtual environments
 .venv/
 venv/
+env/
+ENV/
 
-.env
-
+# Python cache / compiled files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Type checking / linting caches
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# IDEs / editors
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 
-.DS_Store
-Thumbs.db
+# Jupyter
+.ipynb_checkpoints/
 
+# Local databases / generated data
 chroma_db/
-
-*.pdf
 
 # Logs
 *.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Local secrets / credentials
+*.pem
+*.key
+*.crt
+
+# Streamlit local state
+.streamlit/secrets.toml

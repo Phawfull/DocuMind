@@ -1,4 +1,6 @@
-google-generativeai
+PyMuPDF
 chromadb
-pymupdf
-python-docx
+google-genai
+python-dotenv
+rank-bm25
+streamlit

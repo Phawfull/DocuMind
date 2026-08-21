@@ -1,4 +1,5 @@
 import os
+import logging
 import fitz
 import chromadb
 from google import genai
@@ -40,7 +41,7 @@ def extract_pdf(file_path: str) -> list[tuple[str, int]]:
     pdf_document.close()
     return pages
 
-def chunk_text(pages, CHUNK_SIZE = 500, overlap=50):
+def chunk_text(pages, chunk_size=500, overlap=50):
     """
         Splits extracted PDF text into overlapping chunks for embedding.
         Args:
@@ -67,7 +68,7 @@ def chunk_text(pages, CHUNK_SIZE = 500, overlap=50):
     return chunks
 
 
-def create_embeddings(chunks):
+def create_embeddings(chunks, document_name):
     """
         Splits extracted PDF text into overlapping chunks for embedding.
         Args:
@@ -87,7 +88,8 @@ def create_embeddings(chunks):
             "text": chunk["text"],
             "embedding": response.embeddings[0].values,
             "page_number": chunk["page_number"],
-            "chunk_index": chunk["chunk_index"]
+            "chunk_index": chunk["chunk_index"],
+            "document_name": document_name
         })
     return embedded_chunks
 
@@ -107,10 +109,14 @@ def store_embeddings(embedded_chunks):
     metadatas = []
 
     for chunk in embedded_chunks:
-        ids.append("chunk_" + str(chunk["chunk_index"]))
+        ids.append(
+            chunk["document_name"] + "_" +
+            str(chunk["chunk_index"])
+        )
         embeddings.append(chunk["embedding"])
         documents.append(chunk["text"])
         metadatas.append({
+            "document_name": chunk["document_name"],
             "page_number": chunk["page_number"],
             "chunk_index": chunk["chunk_index"]
         })
@@ -139,8 +145,15 @@ def process_pdf(file_path: str) -> None:
     pages = extract_pdf(file_path)
     print("Chunking text...")
     chunks = chunk_text(pages)
+
     print("Creating embeddings...")
-    embedded_chunks = create_embeddings(chunks)
+
+    document_name = os.path.basename(file_path)
+
+    embedded_chunks = create_embeddings(
+        chunks,
+        document_name
+    )
     print("Storing embeddings in ChromaDB...")
     store_embeddings(embedded_chunks)
     logging.info("PDF processed successfully.")
