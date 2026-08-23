@@ -151,7 +151,7 @@ def hybrid_search(query: str, top_k: int = 3) -> list:
     query_embedding = embed_query(query)
     vector_results = search_document(query_embedding, top_k=top_k)
 
-    bm25_index, chunks = build_bm25_index()
+    bm25_index, chunks   = build_bm25_index()
     bm25_results = _bm25_search(query, bm25_index, chunks, top_k=top_k)
 
     return _reciprocal_rank_fusion(vector_results, bm25_results, top_k=top_k)
