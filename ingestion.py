@@ -43,28 +43,47 @@ def extract_pdf(file_path: str) -> list[tuple[str, int]]:
 
 def chunk_text(pages, chunk_size=500, overlap=50):
     """
-        Splits extracted PDF text into overlapping chunks for embedding.
-        Args:
-            pages (list): List of tuples containing page text and page number.
-            chunk_size (int): Maximum number of words per chunk.
-            overlap (int): Number of overlapping words between consecutive chunks.
-        Returns:
-            list: A list of dictionaries containing chunk text and metadata.
-        """
+    Splits extracted PDF pages into overlapping chunks.
+
+    Args:
+        pages: List of (page_text, page_number) tuples.
+        chunk_size: Maximum number of words per chunk.
+        overlap: Number of words shared between consecutive chunks.
+
+    Returns:
+        List of dictionaries containing chunk text and metadata.
+    """
+
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be greater than 0")
+
+    if overlap < 0 or overlap >= chunk_size:
+        raise ValueError("overlap must satisfy 0 <= overlap < chunk_size")
+
     chunks = []
+
     for page_text, page_number in pages:
         words = page_text.split()
         start = 0
+
         while start < len(words):
-            end = start + chunk_size
+            end = min(start + chunk_size, len(words))
             chunk_words = words[start:end]
-            chunk = " ".join(chunk_words)
+
+            if not chunk_words:
+                break
+
             chunks.append({
-                "text": chunk,
+                "text": " ".join(chunk_words),
                 "page_number": page_number,
                 "chunk_index": len(chunks)
             })
+
+            if end >= len(words):
+                break
+
             start = end - overlap
+
     return chunks
 
 
@@ -82,7 +101,10 @@ def create_embeddings(chunks, document_name):
     for chunk in chunks:
         response = client.models.embed_content(
             model=EMBEDDING_MODEL,
-            contents=chunk["text"]
+            contents=chunk["text"],
+            config={
+                "task_type": "RETRIEVAL_DOCUMENT"
+            }
         )
         embedded_chunks.append({
             "text": chunk["text"],

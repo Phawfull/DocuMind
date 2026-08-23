@@ -1,3 +1,4 @@
+import re
 from rank_bm25 import BM25Okapi
 
 from retrieval import embed_query, search_document, collection
@@ -17,7 +18,11 @@ def _chunk_key(chunk: dict) -> tuple:
         chunk["chunk_index"],
     )
 
-
+def tokenize(text: str) -> list[str]:
+    """
+    Normalize text into lowercase word/number tokens for BM25.
+    """
+    return re.findall(r"\b\w+\b", text.lower())
 def build_bm25_index():
     """
     Read all chunks from ChromaDB and build a BM25 index in memory.
@@ -46,8 +51,10 @@ def build_bm25_index():
             "chunk_index": metadata["chunk_index"],
         })
 
-    # Simple whitespace tokenization (lowercased for case-insensitive matching).
-    tokenized_corpus = [chunk["text"].lower().split() for chunk in chunks]
+    tokenized_corpus = [
+        tokenize(chunk["text"])
+        for chunk in chunks
+    ]
     if tokenized_corpus:
         bm25_index = BM25Okapi(tokenized_corpus)
     else:
@@ -65,7 +72,7 @@ def _bm25_search(query: str, bm25_index: BM25Okapi, chunks: list, top_k: int) ->
     if bm25_index is None or not chunks:
         return []
 
-    tokenized_query = query.lower().split()
+    tokenized_query = tokenize(query)
     scores = bm25_index.get_scores(tokenized_query)
 
     ranked_indices = sorted(

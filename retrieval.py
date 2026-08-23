@@ -23,7 +23,10 @@ def embed_query(question: str) -> list[float]:
        """
     response = client.models.embed_content(
         model=EMBEDDING_MODEL,
-        contents=question
+        contents=question,
+        config={
+            "task_type": "RETRIEVAL_QUERY"
+        }
     )
     return response.embeddings[0].values
 
