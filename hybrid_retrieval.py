@@ -5,9 +5,12 @@ from retrieval import embed_query, search_document, collection
 
 RRF_K = 60
 
-_cached_bm25_index = None
-_cached_bm25_chunks = None
-_cached_chunk_count = None
+_cached_bm25_indexes = {}
+
+def invalidate_bm25_cache(session_id=None):
+    """Clear the cached BM25 index for a session."""
+    cache_key = session_id or "__all__"
+    _cached_bm25_indexes.pop(cache_key, None)
 
 
 def _chunk_key(chunk: dict) -> tuple:
@@ -23,22 +26,27 @@ def tokenize(text: str) -> list[str]:
     Normalize text into lowercase word/number tokens for BM25.
     """
     return re.findall(r"\b\w+\b", text.lower())
-def build_bm25_index():
+def build_bm25_index(session_id=None):
     """
     Read all chunks from ChromaDB and build a BM25 index in memory.
     Returns the BM25 index and the ordered list of chunk records used to
     map BM25 result positions back to metadata.
     """
-    global _cached_bm25_index, _cached_bm25_chunks, _cached_chunk_count
+    cache_key = session_id or "__all__"
 
-    current_count = collection.count()
-    if (
-        _cached_bm25_index is not None
-        and _cached_chunk_count == current_count
-    ):
-        return _cached_bm25_index, _cached_bm25_chunks
+    if cache_key in _cached_bm25_indexes:
+        return _cached_bm25_indexes[cache_key]
 
-    data = collection.get(include=["documents", "metadatas"])
+    query_kwargs = {
+        "include": ["documents", "metadatas"]
+    }
+
+    if session_id is not None:
+        query_kwargs["where"] = {
+            "session_id": session_id
+        }
+
+    data = collection.get(**query_kwargs)
 
     chunks = []
     documents = data.get("documents") or []
@@ -60,9 +68,10 @@ def build_bm25_index():
     else:
         bm25_index = None
 
-    _cached_bm25_index = bm25_index
-    _cached_bm25_chunks = chunks
-    _cached_chunk_count = current_count
+    _cached_bm25_indexes[cache_key] = (
+        bm25_index,
+        chunks
+    )
 
     return bm25_index, chunks
 
@@ -144,14 +153,39 @@ def _reciprocal_rank_fusion(
     return fused_results
 
 
-def hybrid_search(query: str, top_k: int = 3) -> list:
+def hybrid_search(
+    query: str,
+    top_k: int = 3,
+    session_id=None
+) -> list:
     """
     Hybrid retrieval: vector search + BM25 keyword search, fused with RRF.
     """
+    candidate_k = max(top_k * 5, 20)
+
     query_embedding = embed_query(query)
-    vector_results = search_document(query_embedding, top_k=top_k)
 
-    bm25_index, chunks   = build_bm25_index()
-    bm25_results = _bm25_search(query, bm25_index, chunks, top_k=top_k)
+    vector_results = search_document(
+        query_embedding,
+        top_k=candidate_k,
+        session_id=session_id
+    )
 
-    return _reciprocal_rank_fusion(vector_results, bm25_results, top_k=top_k)
+    bm25_index, chunks = build_bm25_index(
+        session_id=session_id
+    )
+
+    bm25_results = _bm25_search(
+        query,
+        bm25_index,
+        chunks,
+        top_k=candidate_k
+    )
+
+    candidates = _reciprocal_rank_fusion(
+        vector_results,
+        bm25_results,
+        top_k=candidate_k
+    )
+
+    return candidates[:top_k]

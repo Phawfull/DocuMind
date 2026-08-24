@@ -30,16 +30,23 @@ def embed_query(question: str) -> list[float]:
     )
     return response.embeddings[0].values
 
-def search_document(query_embedding, top_k=3):
+def search_document(query_embedding, top_k=3, session_id=None):
     """
     Retrieves the most relevant document chunks from ChromaDB.
     Returns both the text and source metadata.
     """
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k
-    )
+    query_kwargs = {
+        "query_embeddings": [query_embedding],
+        "n_results": top_k,
+    }
+
+    if session_id is not None:
+        query_kwargs["where"] = {
+            "session_id": session_id
+        }
+
+    results = collection.query(**query_kwargs)
 
     retrieved_chunks = []
 

@@ -1,6 +1,8 @@
 import os
 from google import genai
 from dotenv import load_dotenv
+import time
+from google.genai import errors
 
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -43,9 +45,21 @@ Question:
 {question}
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    max_attempts = 3
+
+    for attempt in range(max_attempts):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            break
+
+        except errors.ServerError as e:
+            if attempt == max_attempts - 1:
+                raise
+
+            wait_time = 2 ** attempt
+            time.sleep(wait_time)
 
     return response.text
