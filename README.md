@@ -1,6 +1,6 @@
 # 📚 DocuMind
 
-> A multi-document Retrieval-Augmented Generation (RAG) application for asking grounded questions across PDF documents using Gemini, ChromaDB, semantic vector search, BM25 keyword retrieval, and Reciprocal Rank Fusion.
+> A multi-document Retrieval-Augmented Generation (RAG) application for asking questions across PDF documents using Gemini, ChromaDB, semantic vector search, BM25, and Reciprocal Rank Fusion.
 
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-Web%20App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
@@ -9,66 +9,78 @@
 [![BM25](https://img.shields.io/badge/BM25-Keyword%20Retrieval-6C5CE7)](https://pypi.org/project/rank-bm25/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
----
+🔗 **GitHub:** https://github.com/Phawfull/DocuMind  
+🌐 **Live Demo:** https://documind-rag.streamlit.app/
 
-## Overview
-
-DocuMind is a document question-answering application built around a **Retrieval-Augmented Generation (RAG)** architecture.
-
-Instead of relying on an LLM's general knowledge alone, DocuMind first retrieves relevant passages from the user's documents and then provides those passages to Gemini as the answer context. This helps keep responses grounded in the uploaded material.
-
-The application supports **multiple PDF documents**, allowing users to build a small document knowledge base and ask questions across the indexed collection through a Streamlit web interface.
-
-The retrieval layer combines two complementary approaches:
-
-- **Semantic vector search** using Gemini-generated embeddings and ChromaDB
-- **Lexical keyword search** using BM25
-
-The two ranked result sets are combined using **Reciprocal Rank Fusion (RRF)** before the most relevant context is passed to Gemini for answer generation.
+> **Version note:** The `main` branch preserves the original Document Q&A project built during my internship. The upgraded application is maintained in the `v2` branch.
 
 ---
 
-## ✨ Key Features
+# Overview
 
-### Multi-document PDF ingestion
-Upload multiple PDF documents and keep them indexed in a shared ChromaDB collection.
+DocuMind started as a simple terminal-based Document Question Answering proof of concept that I built during my internship.
 
-### Semantic retrieval
-Gemini embeddings are used to represent document chunks and user queries in vector space, enabling retrieval based on semantic similarity rather than exact wording.
+I later revisited the project and evolved it into a multi-document RAG application with a web interface, hybrid retrieval, source tracking, and public deployment.
 
-### BM25 keyword retrieval
-BM25 provides a complementary lexical retrieval path that is useful for exact names, terminology, identifiers, technical phrases, and other keyword-sensitive queries.
+Instead of sending an entire PDF directly to an LLM, DocuMind first retrieves relevant passages from the uploaded documents and then provides those passages to Gemini as context for answer generation.
 
-### Hybrid retrieval with RRF
-Results from semantic search and BM25 are combined using Reciprocal Rank Fusion to produce a single ranked candidate list.
+The current V2 pipeline is:
 
-### Source-aware answers
-Retrieved chunks retain document and page metadata so answers can be associated with the source document and page that supplied the context.
-
-### Streamlit web interface
-Users can upload documents, see indexed files, ask questions, view answers, and inspect the retrieved source passages directly from a browser.
-
-### Duplicate document protection
-Documents are tracked using their filename so the application can avoid repeatedly ingesting the same document.
-
-### Persistent local vector storage
-ChromaDB is persisted locally, allowing indexed documents to remain available across application sessions during local development.
+```text
+PDFs
+  ↓
+Text Extraction
+  ↓
+Chunking
+  ↓
+Gemini Embeddings
+  ↓
+ChromaDB
+  ↓
+Vector Search + BM25
+  ↓
+RRF Fusion
+  ↓
+Retrieved Context
+  ↓
+Gemini 2.5 Flash
+  ↓
+Answer + Sources
+```
 
 ---
 
-## 🧠 Architecture
+# Features
+
+- 📄 Multi-document PDF ingestion
+- 🧠 Gemini `gemini-embedding-001` embeddings
+- 🗄️ ChromaDB vector storage
+- 🔎 Semantic vector retrieval
+- 🔤 BM25 keyword retrieval
+- 🔗 Reciprocal Rank Fusion (RRF)
+- 🤖 Gemini 2.5 Flash answer generation
+- 📌 Document and page-level source tracking
+- 💬 Streamlit web interface
+- 🔐 Session-scoped document handling
+- 🧹 Session document management
+- 🛡️ Lightweight usage limits for the public demo
+- 💻 Original CLI version preserved in `main.py`
+
+---
+
+# Architecture
 
 ```text
                          ┌─────────────────────────┐
-                         │      Streamlit UI        │
-                         │                          │
-                         │  • Upload PDFs           │
-                         │  • Document list          │
-                         │  • Chat interface         │
-                         │  • Source display         │
+                         │      Streamlit UI       │
+                         │                         │
+                         │  • Upload PDFs          │
+                         │  • Document list        │
+                         │  • Chat interface       │
+                         │  • Source display       │
                          └────────────┬────────────┘
                                       │
-                           Uploaded PDF / Question
+                         Uploaded PDF / Question
                                       │
                     ┌─────────────────┴─────────────────┐
                     │                                   │
@@ -85,218 +97,416 @@ ChromaDB is persisted locally, allowing indexed documents to remain available ac
             Gemini Embeddings                Search               │
                     │                         │                   │
                     ▼                         └─────────┬─────────┘
-                ChromaDB                                ▼
-          ┌───────────────┐                       RRF Fusion
-          │ Text          │                              │
-          │ Embedding     │                              ▼
-          │ Document Name │                       Top Retrieved
-          │ Page Number   │                           Chunks
-          │ Chunk Index   │                              │
-          └───────────────┘                              ▼
-                                                   Gemini 2.5 Flash
-                                                          │
-                                                          ▼
-                                                   Answer + Sources
+                 ChromaDB                              ▼
+                    │                            RRF Fusion
+                    │                                │
+                    │                                ▼
+                    │                         Retrieved Chunks
+                    │                                │
+                    └────────────────────────────────┤
+                                                     ▼
+                                              Gemini 2.5 Flash
+                                                     │
+                                                     ▼
+                                              Answer + Sources
 ```
 
 ---
 
-## 🔄 End-to-End Workflow
+# How It Works
 
-### 1. Upload
+## 1. Document Ingestion
 
-The user uploads one or more PDFs through the Streamlit interface.
+The user uploads one or more PDF files through the Streamlit interface.
 
-### 2. Text extraction
+PyMuPDF extracts text page by page while preserving page information.
 
-PyMuPDF extracts text from each page.
+```text
+PDF
+ ↓
+PyMuPDF
+ ↓
+Extracted Text
+```
 
-### 3. Chunking
+---
 
-The extracted text is divided into overlapping chunks so that each retrieval unit remains small enough to search effectively.
+## 2. Text Chunking
 
-### 4. Embedding generation
+The extracted text is divided into overlapping chunks.
 
-Each chunk is converted into an embedding using Google's `gemini-embedding-001` model.
+Chunking allows the retrieval system to work with smaller, more relevant passages instead of an entire document at once.
 
-### 5. Storage
-
-Chunks, embeddings, and source metadata are stored in the persistent ChromaDB collection.
-
-Each chunk retains metadata including:
+Each chunk retains metadata such as:
 
 ```text
 document_name
 page_number
 chunk_index
+session_id
 ```
-
-### 6. Query embedding
-
-When a user asks a question, the question is embedded using the same Gemini embedding model.
-
-### 7. Semantic retrieval
-
-ChromaDB performs vector similarity search to find chunks that are semantically related to the query.
-
-### 8. Keyword retrieval
-
-BM25 performs lexical search across the indexed chunk text.
-
-### 9. Reciprocal Rank Fusion
-
-The ranked outputs from semantic retrieval and BM25 are combined using RRF.
-
-The purpose is to benefit from both:
-
-```text
-Semantic search → meaning and related concepts
-BM25            → exact words and phrases
-```
-
-### 10. Context construction
-
-The highest-ranked retrieved chunks are passed to the generation layer with their source metadata.
-
-### 11. Answer generation
-
-Gemini 2.5 Flash generates an answer using the retrieved context.
-
-The generation prompt instructs the model to remain grounded in the supplied document context.
-
-### 12. Source display
-
-The Streamlit application displays the document and page associated with retrieved chunks so users can inspect the supporting passages.
 
 ---
 
-## 🗂️ Project Structure
+## 3. Embedding Generation
+
+Each document chunk is converted into a semantic embedding using:
 
 ```text
-DOCUMENT_QA_POC/
+gemini-embedding-001
+```
+
+Document chunks use:
+
+```text
+RETRIEVAL_DOCUMENT
+```
+
+User queries use:
+
+```text
+RETRIEVAL_QUERY
+```
+
+This allows the embedding model to distinguish between document content being indexed and a query being searched.
+
+---
+
+## 4. Vector Storage
+
+The chunks, embeddings, and metadata are stored in ChromaDB.
+
+```text
+Chunk
+  ↓
+Embedding
+  ↓
+ChromaDB
+```
+
+---
+
+## 5. Semantic Retrieval
+
+When a user asks a question, the query is converted into an embedding and searched against the stored document vectors.
+
+```text
+Question
+   ↓
+Gemini Query Embedding
+   ↓
+ChromaDB Similarity Search
+   ↓
+Candidate Chunks
+```
+
+---
+
+## 6. BM25 Keyword Retrieval
+
+The same query is also searched using BM25.
+
+BM25 provides a lexical retrieval path that is particularly useful for:
+
+- exact terminology
+- names
+- identifiers
+- technical phrases
+- numbers and other keyword-sensitive queries
+
+Example:
+
+```text
+ISO 27001
+Model XJ-500
+Project Alpha
+```
+
+---
+
+## 7. Reciprocal Rank Fusion
+
+The results from semantic retrieval and BM25 are combined using Reciprocal Rank Fusion.
+
+```text
+Semantic Search
+       +
+      BM25
+       ↓
+   RRF Fusion
+       ↓
+Final Retrieved Context
+```
+
+This allows the system to benefit from both semantic similarity and exact keyword matching.
+
+---
+
+## 8. Answer Generation
+
+The retrieved chunks are passed to Gemini 2.5 Flash together with the original question.
+
+```text
+User Question
+      +
+Retrieved Context
+      ↓
+Gemini 2.5 Flash
+      ↓
+Generated Answer
+```
+
+The generation layer is designed to answer from the supplied document context rather than relying solely on general model knowledge.
+
+---
+
+## 9. Source Display
+
+Retrieved chunks retain their document and page information.
+
+Example:
+
+```text
+📄 Annual_Report.pdf · Page 14
+
+Relevant passage:
+Revenue increased by ...
+```
+
+This gives users a way to inspect the material that was retrieved for the answer.
+
+---
+
+# Why Hybrid Retrieval?
+
+A single retrieval strategy is not equally effective for every query.
+
+### Semantic Vector Search
+
+Useful when the wording of the question differs from the wording used in the source.
+
+```text
+Question:
+How many vehicles did the company deliver?
+
+Document:
+The manufacturer delivered 1.2 million vehicles.
+```
+
+The wording differs, but the meaning is closely related.
+
+### BM25
+
+Useful when exact terms matter.
+
+```text
+ISO 27001
+Model XJ-500
+Project Alpha
+```
+
+### RRF
+
+RRF combines the rankings from both retrieval methods:
+
+```text
+Semantic Retrieval
+       +
+Keyword Retrieval
+       ↓
+   RRF Fusion
+       ↓
+Retrieved Context
+```
+
+---
+
+# Session-Based Document Handling
+
+The V2 application associates document chunks with the active Streamlit session.
+
+Conceptually:
+
+```text
+Browser A
+   ↓
+Session A
+   ↓
+PDF A + PDF B
+
+Browser B
+   ↓
+Session B
+   ↓
+PDF C
+```
+
+This is designed so uploaded documents are scoped to the current application session rather than being treated as one shared user corpus.
+
+The application also allows the current session's documents to be cleared from the interface.
+
+---
+
+# Project Structure
+
+```text
+DocuMind/
 │
 ├── app.py                 # Streamlit web application
-├── main.py                # Original command-line interface
+├── main.py                # Original CLI application
 │
 ├── ingestion.py           # PDF extraction, chunking, embeddings, storage
-├── retrieval.py           # Query embeddings and semantic vector search
-├── hybrid_retrieval.py    # BM25 + vector retrieval + RRF fusion
-├── generation.py           # Gemini answer generation
+├── retrieval.py           # Query embeddings and vector retrieval
+├── hybrid_retrieval.py    # BM25 + vector retrieval + RRF
+├── generation.py          # Gemini answer generation
 │
-├── requirements.txt        # Python dependencies
-├── README.md               # Project documentation
-├── .gitignore              # Git exclusions
-├── .env                    # Local environment variables (not committed)
+├── requirements.txt       # Python dependencies
+├── README.md              # Project documentation
+├── .gitignore             # Git exclusions
 │
-└── chroma_db/              # Local ChromaDB data (not committed)
+├── .env                   # Local secrets, not committed
+└── chroma_db/             # Local ChromaDB data, not committed
 ```
 
 ---
 
-## 🧩 Core Components
+# Core Components
 
-### `app.py`
+## `app.py`
 
 The Streamlit entry point.
 
 Responsibilities include:
 
 - PDF uploads
-- document status display
-- chat UI
-- session-level chat history
+- indexed-document display
+- chat interface
+- session state
 - source display
-- user-friendly error handling
+- usage limits
+- session document management
+- user-facing error handling
 
-Run it with:
+Run it using:
 
 ```bash
 streamlit run app.py
 ```
 
-### `ingestion.py`
+---
+
+## `ingestion.py`
 
 Handles the document ingestion pipeline:
 
 ```text
 PDF
-→ page text extraction
-→ chunking
-→ Gemini embeddings
-→ ChromaDB
+ ↓
+Text Extraction
+ ↓
+Chunking
+ ↓
+Gemini Embeddings
+ ↓
+ChromaDB
 ```
 
-It also attaches source metadata to every chunk.
+It also stores document, page, chunk, and session metadata.
 
-### `retrieval.py`
+---
 
-Provides the core semantic retrieval functionality:
+## `retrieval.py`
+
+Handles:
 
 ```text
-question
-→ Gemini embedding
-→ ChromaDB similarity search
-→ structured retrieved chunks
+User Question
+ ↓
+Gemini Query Embedding
+ ↓
+ChromaDB Vector Search
+ ↓
+Retrieved Chunks
 ```
 
-### `hybrid_retrieval.py`
+---
 
-Adds lexical retrieval and result fusion:
+## `hybrid_retrieval.py`
+
+Combines vector retrieval and BM25:
 
 ```text
 Vector Search
       +
-    BM25
+BM25
       ↓
-   RRF Fusion
+RRF Fusion
       ↓
- Final retrieved chunks
+Final Retrieved Chunks
 ```
 
-### `generation.py`
+---
 
-Constructs the grounded context prompt and calls Gemini to generate the final answer.
+## `generation.py`
+
+Builds the grounded prompt and uses Gemini 2.5 Flash to generate the final answer.
 
 ---
 
-## 🛠️ Tech Stack
+## `main.py`
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Language | Python | Core application |
-| UI | Streamlit | Web interface |
-| PDF processing | PyMuPDF | Text extraction |
-| Embeddings | Gemini `gemini-embedding-001` | Semantic document/query embeddings |
-| Vector database | ChromaDB | Persistent vector storage and similarity search |
-| Keyword retrieval | `rank-bm25` | BM25 lexical search |
-| Fusion | Reciprocal Rank Fusion | Combine vector and lexical rankings |
-| LLM | Gemini 2.5 Flash | Grounded answer generation |
-| Configuration | `python-dotenv` | Load environment variables |
+The original terminal-based interface is preserved separately from the Streamlit application.
+
+Run it with:
+
+```bash
+python main.py
+```
 
 ---
 
-## 🚀 Getting Started
+# Technology Stack
 
-### Prerequisites
+| Technology | Purpose |
+|------------|---------|
+| **Python** | Core programming language |
+| **Streamlit** | Web interface |
+| **PyMuPDF** | PDF text extraction |
+| **Google Gemini** | Embeddings and answer generation |
+| **ChromaDB** | Vector storage and similarity search |
+| **rank-bm25** | BM25 keyword retrieval |
+| **python-dotenv** | Environment variable management |
 
-Install:
+### Models
+
+**Embeddings**
+
+```text
+gemini-embedding-001
+```
+
+**Answer Generation**
+
+```text
+gemini-2.5-flash
+```
+
+---
+
+# Running Locally
+
+## Prerequisites
 
 - Python 3.x
-- A Google Gemini API key
-- Git (optional but recommended)
-
-Create a Gemini API key through Google's AI tooling and keep it private.
-
----
+- Google Gemini API key
+- Git
 
 ## 1. Clone the repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd document_qa_poc
+git clone https://github.com/Phawfull/DocuMind.git
+cd DocuMind
 ```
-
----
 
 ## 2. Create a virtual environment
 
@@ -314,17 +524,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
----
-
 ## 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## 4. Configure environment variables
+## 4. Configure the Gemini API key
 
 Create a `.env` file in the project root:
 
@@ -332,9 +538,7 @@ Create a `.env` file in the project root:
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-Do **not** commit `.env` to GitHub.
-
----
+Do not commit this file.
 
 ## 5. Run the web application
 
@@ -342,261 +546,137 @@ Do **not** commit `.env` to GitHub.
 streamlit run app.py
 ```
 
-Then open the local URL provided by Streamlit, typically:
+Then open the local URL shown by Streamlit, usually:
 
 ```text
 http://localhost:8501
 ```
 
----
-
-## 6. Optional: Run the CLI version
-
-The original command-line interface is still available:
+## 6. Run the original CLI
 
 ```bash
 python main.py
 ```
 
-The CLI is useful for debugging and for interacting with the backend without the web interface.
+---
+
+# 🌐 Live Deployment
+
+The V2 application is deployed using Streamlit Community Cloud.
+
+```text
+GitHub
+  ↓
+v2 branch
+  ↓
+Streamlit Community Cloud
+  ↓
+app.py
+  ↓
+Public Demo
+```
+
+### Live Demo
+
+https://documind-rag.streamlit.app/
+
+The deployed application uses Streamlit Secrets for the Gemini API key rather than storing the credential in the repository.
 
 ---
 
-## 💬 Example Usage
+# 🔐 Security
 
-### Upload
+Never commit API keys or private credentials.
 
-Upload:
-
-```text
-Annual_Report.pdf
-Research_Paper.pdf
-Company_Profile.pdf
-```
-
-### Ask
-
-```text
-What was the company's revenue in 2024?
-```
-
-or:
-
-```text
-What are the key differences between the two reports?
-```
-
-or:
-
-```text
-Which document discusses the company's expansion into Europe?
-```
-
-The system searches the indexed document collection rather than requiring the user to specify which PDF should be searched.
-
----
-
-## 🔎 Why Hybrid Retrieval?
-
-A single retrieval strategy does not perform equally well for every query.
-
-### Semantic vector search
-
-Semantic retrieval is useful when the wording of the question differs from the wording in the source.
-
-For example:
-
-```text
-Query:
-How many vehicles did the company ship?
-
-Document:
-The manufacturer delivered 1.2 million vehicles.
-```
-
-The wording differs, but the underlying meaning is related.
-
-### BM25
-
-BM25 is useful when exact terms matter.
-
-For example:
-
-```text
-ISO 27001:2022
-```
-
-or:
-
-```text
-Model XJ-500
-```
-
-Exact lexical matches can be highly valuable for these cases.
-
-### RRF
-
-Reciprocal Rank Fusion combines the two ranked lists so that chunks appearing strongly in either retrieval strategy can contribute to the final ranking.
-
-The resulting design is:
-
-```text
-Semantic Retrieval
-        +
-Keyword Retrieval
-        ↓
-   RRF Fusion
-        ↓
-  Better Context
-```
-
----
-
-## 📌 Source Grounding
-
-Each retrieved chunk retains metadata such as:
-
-```json
-{
-  "document_name": "Annual_Report.pdf",
-  "page_number": 14,
-  "chunk_index": 7
-}
-```
-
-This allows the application to associate generated answers with the original document and page.
-
-The Streamlit interface exposes these sources so users can inspect the retrieved passages instead of treating the generated response as an unsupported black box.
-
----
-
-## ⚠️ Current Limitations
-
-This project intentionally focuses on text-based PDF documents and a relatively lightweight local architecture.
-
-Current limitations include:
-
-- Scanned/image-only PDFs are not handled through OCR.
-- BM25 indexing is maintained in memory for the running application rather than through a dedicated search service.
-- ChromaDB is local and is not a production distributed vector database.
-- The system is designed primarily as a portfolio/learning application rather than a production multi-user service.
-- The application depends on a Gemini API key for embeddings and generation.
-- Document identity is currently based on filenames rather than content hashing.
-- The current generation pipeline is not designed to provide guaranteed factual correctness beyond the retrieved context.
-
-These are deliberate scope decisions for the current version.
-
----
-
-## 🔐 Security Notes
-
-Never commit secrets to the repository.
-
-The following should remain local and excluded by `.gitignore`:
+The following should remain outside version control:
 
 ```text
 .env
 .venv/
 chroma_db/
+__pycache__/
+.idea/
 ```
 
-If the project is deployed, configure the Gemini API key using the hosting platform's secret/environment-variable mechanism rather than committing the key to source control.
+The deployed application should configure:
+
+```text
+GEMINI_API_KEY
+```
+
+through Streamlit's secret management.
 
 ---
 
-## 🧪 Testing Checklist
+# ⚠️ Current Limitations
 
-Before presenting or deploying the application, verify:
+DocuMind is currently a portfolio and learning project rather than a production document platform.
+
+Current limitations include:
+
+- Text-based PDFs are the primary supported input.
+- Scanned/image-only PDFs do not currently use OCR.
+- ChromaDB is used as the local vector database.
+- The public deployment is designed as a demo rather than a production SaaS application.
+- Gemini usage is subject to the limits and policies of the configured Google project.
+- Conversational follow-up questions are not yet rewritten into standalone retrieval queries.
+- There is currently no formal retrieval benchmark in the repository.
+- The project does not claim guaranteed factual correctness beyond the retrieved context.
+
+---
+
+# 🧪 Manual Verification
+
+Before releasing a change, verify:
 
 ```text
-[ ] A text-based PDF uploads successfully
-[ ] PDF text is extracted
-[ ] Chunks are created
-[ ] Gemini embeddings are generated
-[ ] Document is added to ChromaDB
-[ ] Indexed document appears in the UI
+[ ] PDF uploads successfully
+[ ] Text extraction completes
+[ ] Embeddings are generated
+[ ] Document appears in the indexed-document list
 [ ] A basic question returns an answer
-[ ] Sources show the expected PDF/page
-[ ] A second PDF can be indexed
-[ ] Queries can retrieve information from multiple documents
-[ ] Duplicate filenames are handled
-[ ] Clear Chat does not delete indexed documents
+[ ] Sources display the expected document/page
+[ ] Multiple PDFs can be indexed
+[ ] A question about the second PDF retrieves correctly
+[ ] Cross-document questions work
+[ ] Duplicate uploads are handled
+[ ] Clear Chat only clears conversation history
+[ ] Clear My Documents removes the current session's documents
 [ ] .env is not committed
 [ ] chroma_db/ is not committed
 ```
 
 ---
 
-## 🌐 Deployment
-
-The application is designed to be deployable as a Streamlit web application.
-
-A lightweight deployment path is:
-
-```text
-GitHub Repository
-       ↓
-Streamlit Community Cloud
-       ↓
-app.py
-       ↓
-Public Web Application
-```
-
-For deployment:
-
-1. Push the project to GitHub.
-2. Create a Streamlit Community Cloud app from the repository.
-3. Select `app.py` as the application entry point.
-4. Configure `GEMINI_API_KEY` as a deployment secret.
-5. Do not upload `.env` or `chroma_db/` as part of the deployment source.
-
-> **Note:** local persistent storage behavior differs from a production database. A production-scale version would use managed persistence and a more robust document/index lifecycle.
-
----
-
-## 📈 Future Improvements
+# 📈 Future Improvements
 
 Possible future directions include:
 
-- Better document ingestion for complex PDFs
-- OCR for scanned documents
-- More advanced chunking strategies
-- Better metadata filtering
-- Persistent BM25 indexing
 - Retrieval evaluation and benchmarking
-- Query rewriting for conversational follow-up questions
-- User authentication and document isolation
-- Managed/vector database infrastructure
+- Unit tests for chunking and RRF
+- Batched embedding requests
+- Retry and backoff for transient API failures
+- More advanced BM25 processing
+- Persistent BM25 indexing
+- Query rewriting for conversational retrieval
+- OCR for scanned PDFs
+- Better document previews
+- Streaming responses
+- Managed vector storage
+- Production authentication and multi-user infrastructure
 - FastAPI backend
-- React-based frontend
-- Cloud deployment with production-grade storage
-- Streaming model responses
-- Document previews and deeper source navigation
-
-These are intentionally outside the current MVP/portfolio scope.
+- React frontend
 
 ---
 
-## 🎯 Project Goals
+# 📚 Concepts Demonstrated
 
-DocuMind was developed with a simple goal:
-
-> **Make document-based information easier to query while keeping generated answers grounded in the source material.**
-
-The project focuses on understanding and implementing the core RAG pipeline rather than hiding the architecture behind a large framework.
-
----
-
-## 📚 Concepts Demonstrated
-
-This project demonstrates practical experience with:
+DocuMind demonstrates practical implementation of:
 
 - Retrieval-Augmented Generation (RAG)
-- Text preprocessing
-- Chunking strategies
+- Document chunking
 - Embeddings
-- Vector similarity search
+- Semantic search
 - Vector databases
 - Keyword retrieval
 - BM25
@@ -604,23 +684,22 @@ This project demonstrates practical experience with:
 - Prompt construction
 - Source metadata
 - LLM application development
-- Streamlit application development
 - Multi-document retrieval
-- Python environment and dependency management
+- Streamlit development
+- Session state
+- Environment and secret management
 
 ---
 
-## 📷 Screenshots
+# 📷 Screenshots
 
-Add screenshots of the application here after the final UI polish.
-
-Suggested screenshots:
+Suggested screenshots for the repository:
 
 1. Main DocuMind interface
-2. Multiple indexed documents
+2. Multiple indexed PDFs
 3. Example question and answer
-4. Expanded source citations
-5. Multi-document comparison question
+4. Expanded source section
+5. Cross-document question
 
 Example:
 
@@ -630,54 +709,80 @@ Example:
 
 ---
 
-## 🧑‍💻 Author
+# 📚 Version History
+
+## V1 — Internship POC
+
+The original Document Q&A project built during my internship.
+
+```text
+PDF
+ ↓
+Chunking
+ ↓
+Gemini Embeddings
+ ↓
+ChromaDB
+ ↓
+Vector Retrieval
+ ↓
+Gemini
+```
+
+The original implementation is preserved in the `main` branch.
+
+## V2 — DocuMind
+
+The upgraded version developed afterward.
+
+```text
+Multiple PDFs
+ ↓
+Gemini Embeddings
+ ↓
+ChromaDB
+ ↓
+Vector Search + BM25
+ ↓
+RRF
+ ↓
+Gemini
+ ↓
+Answer + Sources
+```
+
+V2 adds:
+
+- multi-document ingestion
+- hybrid retrieval
+- source tracking
+- Streamlit web interface
+- public deployment
+- session-scoped document handling
+- usage controls for the public demo
+
+---
+
+# 👤 Author
 
 **Arush Gupta**
 
 B.Tech Computer Science Engineering — AI/ML
 
-GitHub: [YOUR_GITHUB_PROFILE]
-
-LinkedIn: [YOUR_LINKEDIN_PROFILE]
+GitHub: https://github.com/Phawfull/DocuMind
 
 ---
 
-## 📄 License
+# ⭐ Project Status
 
-This project is intended as a learning and portfolio project.
+**V2 — Deployed and actively being improved**
 
-If this repository is intended to be open source, add a license file such as `LICENSE` and update this section accordingly.
+DocuMind represents the evolution of a basic internship Document Q&A POC into a multi-document RAG application with hybrid retrieval and a public web interface.
 
----
-
-## ⭐ Acknowledgements
-
-Built using open-source Python libraries and Google's Gemini API.
-
-Core technologies:
-
-- Python
-- Streamlit
-- PyMuPDF
-- ChromaDB
-- BM25
-- Google Gemini
+The `main` branch preserves the original implementation, while the `v2` branch contains the upgraded version.
 
 ---
 
-## 💡 Project Summary
+# 📄 License
 
-```text
-DocuMind
-│
-├── Multi-document PDF ingestion
-├── Gemini embeddings
-├── ChromaDB semantic search
-├── BM25 keyword retrieval
-├── Reciprocal Rank Fusion
-├── Gemini grounded generation
-├── Source-aware responses
-└── Streamlit web interface
-```
-
-**Build. Retrieve. Understand.**
+This project is licensed under the [MIT License](LICENSE).
