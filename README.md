@@ -691,24 +691,6 @@ DocuMind demonstrates practical implementation of:
 
 ---
 
-# 📷 Screenshots
-
-Suggested screenshots for the repository:
-
-1. Main DocuMind interface
-2. Multiple indexed PDFs
-3. Example question and answer
-4. Expanded source section
-5. Cross-document question
-
-Example:
-
-```md
-![DocuMind interface](screenshots/main-ui.png)
-```
-
----
-
 # 📚 Version History
 
 ## V1 — Internship POC
